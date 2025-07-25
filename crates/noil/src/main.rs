@@ -109,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
 
             write_changes(&noil_content).await?;
 
-            todo!()
+            //todo!()
         }
         Some(Commands::Fmt {}) => {
             let mut stdin = tokio::io::stdin();
@@ -224,12 +224,13 @@ async fn get_outputs(path: &Path, no_color: bool) -> anyhow::Result<String> {
         let mut line = String::new();
         write!(
             &mut line,
-            "{}{}   :   {}{}",
+            "   {}{}   :   {}{}",
             {
                 if no_color {
                     prefix
                 } else if let Some(suffix) = prefix.strip_prefix(individual_prefix) {
-                    &format!("*{individual_prefix}*{suffix}")
+                    //&format!("*{individual_prefix}*{suffix}")
+                    &format!("{individual_prefix}{suffix}")
                 } else {
                     prefix
                 }

@@ -24,7 +24,7 @@ Edit filesystem operations like it's plain text, and then apply them in a contro
 
 ```bash
 # Preview file tree and tags
-noil .
+noil . 
 
 # Edit in your $EDITOR
 noil edit .
