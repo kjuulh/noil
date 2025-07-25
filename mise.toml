@@ -1,0 +1,14 @@
+[tasks."run:edit"]
+run = """#!/usr/bin/env zsh
+
+set -e
+
+tmp=$(mktemp)
+cargo run -- --no-color target/ > "$tmp" || return 1
+${EDITOR:-hx} "$tmp"
+cargo run -- apply < "$tmp"
+rm "$tmp"
+"""
+
+[tasks.test]
+run = "cargo nextest run"
