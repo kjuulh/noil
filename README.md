@@ -8,6 +8,12 @@ Edit filesystem operations like it's plain text, and then apply them in a contro
 
 ---
 
+## Interactive Mode (TBA)
+
+I am planning an interactive TUI mode, where you don't have to care about tags, like in `oil`. For now the normal editor is quite useful though, and allows all types of editors to easily move, edit files and so on.
+
+---
+
 ## ✨ Features
 
 * Edit your file tree like a normal buffer
