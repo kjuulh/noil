@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2025-07-26
+
+### Added
+- update demo
+- add help text for preview
+
+### Other
+- remove cockroach
+
 ## [0.0.5] - 2025-07-26
 
 ### Added
