@@ -22,11 +22,15 @@ impl ApplyCommand {
 
         if !self.commit {
             let action = print_changes(&input, !self.commit).await?;
-            match action {
+            let res = match action {
                 Action::Quit => Ok(()),
                 Action::Apply { original } => apply(&original).await,
                 Action::Edit => todo!(),
-            }
+            };
+
+            eprintln!("\nin preview mode: add (--commit) to perform actions");
+
+            res
         } else {
             apply(&input).await
         }
