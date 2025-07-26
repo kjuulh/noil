@@ -101,7 +101,7 @@ formatter = { command = "noil", args = ["fmt"] }
 
 [[grammar]]
 name = "noil"
-source = { git = "https://git.front.kjuulh.io/kjuulh/tree-sitter-noil.git", rev = "2f295629439881d0b9e89108a1296881d0daf7b9" }
+source = { git = "https://git.kjuulh.io/kjuulh/tree-sitter-noil.git", rev = "2f295629439881d0b9e89108a1296881d0daf7b9" }
 ```
 
 ---
@@ -139,7 +139,7 @@ cargo install noil
 **Build from source**:
 
 ```bash
-cargo install --git https://git.front.kjuulh.io/kjuulh/noil.git
+cargo install --git https://git.kjuulh.io/kjuulh/noil.git
 ```
 
 Or clone locally and run with `cargo run`.

@@ -5,7 +5,7 @@ readme = "../../README.md"
 license = "MIT"
 description = "file explorer using text buffers"
 authors = ["kjuulh <contact@kasperhermansen.com>"]
-repository = "https://git.front.kjuulh.io/kjuulh/noil"
+repository = "https://git.kjuulh.io/kjuulh/noil"
 
 version.workspace = true
 
