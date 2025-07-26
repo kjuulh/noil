@@ -6,7 +6,10 @@ use crate::{
 };
 
 #[derive(clap::Parser)]
-pub struct ApplyCommand {}
+pub struct ApplyCommand {
+    #[arg(long = "commit")]
+    commit: bool,
+}
 
 impl ApplyCommand {
     pub async fn execute(&self) -> anyhow::Result<()> {
@@ -17,11 +20,15 @@ impl ApplyCommand {
 
         let input = String::from_utf8_lossy(&buffer);
 
-        let action = print_changes(&input).await?;
-        match action {
-            Action::Quit => Ok(()),
-            Action::Apply { original } => apply(&original).await,
-            Action::Edit => todo!(),
+        if !self.commit {
+            let action = print_changes(&input, !self.commit).await?;
+            match action {
+                Action::Quit => Ok(()),
+                Action::Apply { original } => apply(&original).await,
+                Action::Edit => todo!(),
+            }
+        } else {
+            apply(&input).await
         }
     }
 }

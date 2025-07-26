@@ -17,6 +17,8 @@ use crate::{
     parse,
 };
 
+const PREVIEW: bool = false;
+
 #[derive(Parser)]
 pub struct EditCommand {
     #[arg()]
@@ -68,7 +70,7 @@ impl EditCommand {
                 .await
                 .context("read noil file")?;
 
-            let res = print_changes(&noil_content).await;
+            let res = print_changes(&noil_content, PREVIEW).await;
 
             let action = match res {
                 Ok(a) => a,
@@ -175,6 +177,7 @@ pub async fn apply(input: &str) -> anyhow::Result<()> {
                 if existing.path.is_dir() {
                     tracing::debug!("copying dir");
                     copy(&existing.path, path).await?;
+                    continue;
                 }
 
                 tokio::fs::copy(&existing.path, &path)
@@ -235,6 +238,9 @@ async fn copy(source: &Path, dest: &Path) -> anyhow::Result<()> {
 
     for entry in walkdir::WalkDir::new(source) {
         let entry = entry?;
+
+        tracing::debug!("copying path: {}", entry.path().display());
+
         paths.push(entry.path().strip_prefix(source)?.to_path_buf());
     }
 
@@ -260,10 +266,12 @@ async fn copy_path(src: &Path, dest: &Path) -> anyhow::Result<()> {
     }
 
     if src.is_dir() {
+        tracing::info!("copying dir: {}", dest.display());
         tokio::fs::create_dir_all(&dest).await.context("copy dir")?;
     }
 
-    if dest.is_file() {
+    if src.is_file() {
+        tracing::info!("copying file: {}", dest.display());
         tokio::fs::copy(&src, &dest).await.context("copy file")?;
     }
 

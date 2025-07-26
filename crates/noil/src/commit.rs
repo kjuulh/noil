@@ -14,7 +14,7 @@ pub enum Action {
     Edit,
 }
 
-pub async fn print_changes(input: &str) -> anyhow::Result<Action> {
+pub async fn print_changes(input: &str, preview: bool) -> anyhow::Result<Action> {
     let noil_index = parse_input(input).context("parse input")?;
 
     fn print_op(key: &str, index: Option<&str>, path: Option<&Path>) {
@@ -64,6 +64,11 @@ pub async fn print_changes(input: &str) -> anyhow::Result<Action> {
             _ => {}
         }
     }
+
+    if preview {
+        return Ok(Action::Quit);
+    }
+
     eprint!("\nApply changes? (y (yes) / n (abort) / E (edit)): ");
     let mut stderr = std::io::stderr();
     stderr.flush()?;
