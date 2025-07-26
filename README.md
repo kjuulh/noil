@@ -129,6 +129,13 @@ noil gives you full control over file operations in a composable and editor-frie
 
 ## 📦 Installation
 
+**Build from crates**:
+
+```bash
+cargo install noil
+```
+
+
 **Build from source**:
 
 ```bash
