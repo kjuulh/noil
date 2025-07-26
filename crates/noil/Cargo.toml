@@ -1,6 +1,10 @@
 [package]
 name = "noil"
-edition = "2021"
+edition = "2024"
+readme = "../../README.md"
+license = "MIT"
+description = "file explorer using text buffers"
+authors = ["kjuulh <contact@kasperhermansen.com>"]
 
 version.workspace = true
 
