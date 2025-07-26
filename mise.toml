@@ -12,3 +12,7 @@ rm "$tmp"
 
 [tasks.test]
 run = "cargo nextest run"
+
+[tasks.install]
+alias = ["i"]
+run = "cargo install --path crates/noil --force"

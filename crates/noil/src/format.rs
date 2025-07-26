@@ -4,10 +4,10 @@ use anyhow::Context;
 
 use crate::models;
 
-use super::parse::parse;
+use super::parse::parse_input;
 
 pub(crate) fn format(input: &str) -> anyhow::Result<String> {
-    let noil_index = parse(input).context("parse input")?;
+    let noil_index = parse_input(input).context("parse input")?;
 
     let max_op_len = noil_index
         .files

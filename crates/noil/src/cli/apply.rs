@@ -1,6 +1,9 @@
 use tokio::io::AsyncReadExt;
 
-use crate::commit::write_changes;
+use crate::{
+    cli::edit::apply,
+    commit::{Action, print_changes},
+};
 
 #[derive(clap::Parser)]
 pub struct ApplyCommand {}
@@ -14,8 +17,11 @@ impl ApplyCommand {
 
         let input = String::from_utf8_lossy(&buffer);
 
-        write_changes(&input).await?;
-
-        Ok(())
+        let action = print_changes(&input).await?;
+        match action {
+            Action::Quit => Ok(()),
+            Action::Apply { original } => apply(&original).await,
+            Action::Edit => todo!(),
+        }
     }
 }

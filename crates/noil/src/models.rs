@@ -7,6 +7,15 @@ pub struct Buffer {
     pub(crate) files: Vec<File>,
 }
 
+impl Buffer {
+    pub fn get_existing(&self, index: &str) -> Option<&File> {
+        self.files.iter().find(|f| match &f.entry.operation {
+            Operation::Existing { index: idx } => idx == index,
+            _ => false,
+        })
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct File {
     pub(crate) path: PathBuf,
@@ -100,7 +109,7 @@ abc  : /var/my
 ecd  : /var/my/path                
 "#;
 
-        let output = parse::parse(input)?;
+        let output = parse::parse_input(input)?;
 
         pretty_assertions::assert_eq!(
             Buffer {
@@ -140,7 +149,7 @@ A    : /var/my/path/new-path
 ADD  : /var/my/path/new-long-path                
 "#;
 
-        let output = parse::parse(input)?;
+        let output = parse::parse_input(input)?;
 
         pretty_assertions::assert_eq!(
             Buffer {
@@ -194,7 +203,7 @@ C    abc : /var/my/path/copy-into
 COPY ecd : /var/my/path/copy-into-long                
 "#;
 
-        let output = parse::parse(input)?;
+        let output = parse::parse_input(input)?;
 
         pretty_assertions::assert_eq!(
             Buffer {
@@ -250,7 +259,7 @@ DEL ecd         : /var/my/path
 DELETE ecd      : /var/my/path                
 "#;
 
-        let output = parse::parse(input)?;
+        let output = parse::parse_input(input)?;
 
         pretty_assertions::assert_eq!(
             Buffer {
@@ -301,7 +310,7 @@ MOVE ecd   : /var/my/some-different-place
 RENAME ecd : /var/my/some-different-place
 "#;
 
-        let output = parse::parse(input)?;
+        let output = parse::parse_input(input)?;
 
         pretty_assertions::assert_eq!(
             Buffer {

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::models;
 
-pub(crate) fn parse(input: &str) -> anyhow::Result<models::Buffer> {
+pub(crate) fn parse_input(input: &str) -> anyhow::Result<models::Buffer> {
     let mut files = Vec::default();
     // We are keeping parsing simple. For each line take any non empty lines, the first part should be an index. This is where the magic happens, if it contains special tokens handle accordingly, the path always comes after a :.
     for line in input.lines() {

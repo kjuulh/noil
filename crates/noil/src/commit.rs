@@ -1,11 +1,21 @@
 use std::path::Path;
 
+use ansi_term::Color;
 use anyhow::Context;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::{models::Operation, parse::parse};
+use std::io::Write;
 
-pub async fn write_changes(input: &str) -> anyhow::Result<()> {
-    let noil_index = parse(input).context("parse input")?;
+use crate::{models::Operation, parse::parse_input};
+
+pub enum Action {
+    Quit,
+    Apply { original: String },
+    Edit,
+}
+
+pub async fn print_changes(input: &str) -> anyhow::Result<Action> {
+    let noil_index = parse_input(input).context("parse input")?;
 
     fn print_op(key: &str, index: Option<&str>, path: Option<&Path>) {
         match index {
@@ -54,8 +64,47 @@ pub async fn write_changes(input: &str) -> anyhow::Result<()> {
             _ => {}
         }
     }
-    print!("\nApply changes? (y/N): ");
-    println!();
+    eprint!("\nApply changes? (y (yes) / n (abort) / E (edit)): ");
+    let mut stderr = std::io::stderr();
+    stderr.flush()?;
 
-    Ok(())
+    let stdin = tokio::io::stdin();
+    let mut reader = BufReader::new(stdin);
+    let mut input_buf = String::new();
+
+    reader.read_line(&mut input_buf).await?;
+    let trimmed = input_buf.trim().to_lowercase();
+
+    match trimmed.as_str() {
+        "y" => {
+            println!("Confirmed.");
+
+            Ok(Action::Apply {
+                original: input.to_string(),
+            })
+        }
+        "n" => {
+            println!("Aborted.");
+            Ok(Action::Quit)
+        }
+        "e" | "" => {
+            println!("Edit");
+
+            Ok(Action::Edit)
+        }
+        _ => {
+            println!("Invalid input: {}", Color::Red.normal().paint(trimmed));
+
+            eprint!("press enter to edit: ");
+            let mut stderr = std::io::stderr();
+            stderr.flush()?;
+
+            let stdin = tokio::io::stdin();
+            let mut reader = BufReader::new(stdin);
+            let mut input_buf = String::new();
+            reader.read_line(&mut input_buf).await?;
+
+            Ok(Action::Edit)
+        }
+    }
 }
