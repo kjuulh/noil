@@ -23,6 +23,9 @@ const PREVIEW: bool = false;
 pub struct EditCommand {
     #[arg()]
     path: PathBuf,
+
+    #[arg(long = "chooser-file", env = "NOIL_CHOOSER_FILE")]
+    chooser_file: Option<PathBuf>,
 }
 
 impl EditCommand {
@@ -89,7 +92,13 @@ impl EditCommand {
             match action {
                 Action::Quit => return Ok(()),
                 Action::Apply { original } => {
-                    return apply(&original).await;
+                    return apply(
+                        &original,
+                        ApplyOptions {
+                            chooser_file: self.chooser_file.clone(),
+                        },
+                    )
+                    .await;
                 }
                 Action::Edit => continue,
             }
@@ -107,6 +116,11 @@ async fn wait_user() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+#[derive(Default, Clone, Debug)]
+pub struct ApplyOptions {
+    pub chooser_file: Option<PathBuf>,
+}
+
 /// the philosphy behind apply is that we try unlike normal file system operations to be idempotent.
 /// This is mainly for 2 reasons.
 ///
@@ -114,16 +128,26 @@ async fn wait_user() -> Result<(), anyhow::Error> {
 /// 2. A .noil recipe can be rerun, having small issues disrupt the work would be counterproductive, as the .noil language is not powerful enough to handle the flexibility required for file checking
 ///
 /// All in all apply is mostly idempotent, and won't override files, it tries to be as non destructive as possible. For example move will only throw a warning if the source file doesn't exists, but the destination does
-pub async fn apply(input: &str) -> anyhow::Result<()> {
+pub async fn apply(input: &str, options: ApplyOptions) -> anyhow::Result<()> {
     eprintln!("applying changes");
 
     let noil_index = parse::parse_input(input).context("parse input")?;
+
+    let mut open_files = Vec::new();
 
     for file in &noil_index.files {
         let path = &file.path;
         match &file.entry.operation {
             Operation::Existing { .. } => {
                 // Noop
+            }
+            Operation::Open { .. } => {
+                if path.to_string_lossy().ends_with("/") {
+                    // We can't open directories, so they're skipped
+                    continue;
+                }
+
+                open_files.push(path);
             }
             Operation::Add => {
                 tracing::debug!("creating file");
@@ -228,6 +252,31 @@ pub async fn apply(input: &str) -> anyhow::Result<()> {
                     .context("move path")?;
             }
         }
+    }
+
+    if let Some(chooser_file) = &options.chooser_file {
+        tracing::debug!("creating chooser file");
+        if let Some(parent) = chooser_file.parent()
+            && !chooser_file.exists()
+        {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .context("parent dir for chooser file")?;
+        }
+
+        let mut file = tokio::fs::File::create(chooser_file)
+            .await
+            .context("create new chooser file")?;
+
+        let open_files = open_files
+            .iter()
+            .map(|i| i.display().to_string())
+            .collect::<Vec<_>>();
+
+        file.write_all(open_files.join("\n").as_bytes())
+            .await
+            .context("write chosen files")?;
+        file.flush().await.context("flush chosen file")?;
     }
 
     Ok(())

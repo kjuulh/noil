@@ -1,7 +1,9 @@
+use std::path::PathBuf;
+
 use tokio::io::AsyncReadExt;
 
 use crate::{
-    cli::edit::apply,
+    cli::edit::{ApplyOptions, apply},
     commit::{Action, print_changes},
 };
 
@@ -9,6 +11,9 @@ use crate::{
 pub struct ApplyCommand {
     #[arg(long = "commit")]
     commit: bool,
+
+    #[arg(long = "chooser-file", env = "NOIL_CHOOSER_FILE")]
+    chooser_file: Option<PathBuf>,
 }
 
 impl ApplyCommand {
@@ -24,7 +29,15 @@ impl ApplyCommand {
             let action = print_changes(&input, !self.commit).await?;
             let res = match action {
                 Action::Quit => Ok(()),
-                Action::Apply { original } => apply(&original).await,
+                Action::Apply { original } => {
+                    apply(
+                        &original,
+                        ApplyOptions {
+                            chooser_file: self.chooser_file.clone(),
+                        },
+                    )
+                    .await
+                }
                 Action::Edit => todo!(),
             };
 
@@ -32,7 +45,13 @@ impl ApplyCommand {
 
             res
         } else {
-            apply(&input).await
+            apply(
+                &input,
+                ApplyOptions {
+                    chooser_file: self.chooser_file.clone(),
+                },
+            )
+            .await
         }
     }
 }

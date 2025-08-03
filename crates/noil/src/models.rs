@@ -35,6 +35,7 @@ pub enum Operation {
     Copy { index: String },
     Delete { index: String },
     Move { index: String },
+    Open { index: Option<String> },
 }
 
 impl Display for Operation {
@@ -45,6 +46,7 @@ impl Display for Operation {
             Operation::Copy { .. } => "COPY",
             Operation::Delete { .. } => "DELETE",
             Operation::Move { .. } => "MOVE",
+            Operation::Open { .. } => "OPEN",
         };
 
         f.write_str(op)
@@ -86,6 +88,16 @@ impl FileEntry {
             "D" | "DEL" | "DELETE" if first != last => Operation::Delete { index },
             // MOVE:
             "M" | "MV" | "MOVE" | "RENAME" if first != last => Operation::Move { index },
+            "O" | "OPEN" => Operation::Open {
+                index: {
+                    // if LAST == is the Operation, we set the index to empty, if the index is missing we set it to None
+                    if index.is_empty() || index.chars().any(|c| c.is_uppercase()) {
+                        None
+                    } else {
+                        Some(index)
+                    }
+                },
+            },
             o => {
                 anyhow::bail!("operation: {} is not supported", o);
             }
@@ -184,6 +196,60 @@ ADD  : /var/my/path/new-long-path
                         entry: FileEntry {
                             raw_op: Some("ADD".into()),
                             operation: Operation::Add,
+                        }
+                    }
+                ]
+            },
+            output
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn can_parse_item_open_operation() -> anyhow::Result<()> {
+        let input = r#"
+O abc     : /var/my                
+OPEN ecd  : /var/my/path                
+O         : /var/my/path/new-path                
+OPEN      : /var/my/path/new-long-path                
+"#;
+
+        let output = parse::parse_input(input)?;
+
+        pretty_assertions::assert_eq!(
+            Buffer {
+                files: vec![
+                    File {
+                        path: "/var/my".into(),
+                        entry: FileEntry {
+                            raw_op: Some("O".into()),
+                            operation: Operation::Open {
+                                index: Some("abc".into()),
+                            }
+                        },
+                    },
+                    File {
+                        path: "/var/my/path".into(),
+                        entry: FileEntry {
+                            raw_op: Some("OPEN".into()),
+                            operation: Operation::Open {
+                                index: Some("ecd".into())
+                            }
+                        },
+                    },
+                    File {
+                        path: "/var/my/path/new-path".into(),
+                        entry: FileEntry {
+                            raw_op: Some("O".into()),
+                            operation: Operation::Open { index: None },
+                        },
+                    },
+                    File {
+                        path: "/var/my/path/new-long-path".into(),
+                        entry: FileEntry {
+                            raw_op: Some("OPEN".into()),
+                            operation: Operation::Open { index: None },
                         }
                     }
                 ]

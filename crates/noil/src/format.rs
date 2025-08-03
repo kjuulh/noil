@@ -23,6 +23,9 @@ pub(crate) fn format(input: &str) -> anyhow::Result<String> {
             | models::Operation::Delete { index }
             | models::Operation::Move { index }
             | models::Operation::Existing { index } => index.len(),
+            models::Operation::Open { index } => {
+                index.as_ref().map(|i| i.len()).unwrap_or_default()
+            }
             models::Operation::Add => 0,
         })
         .max()
@@ -53,6 +56,7 @@ pub(crate) fn format(input: &str) -> anyhow::Result<String> {
             | models::Operation::Delete { index }
             | models::Operation::Move { index }
             | models::Operation::Existing { index } => Some(index),
+            models::Operation::Open { index } => index,
             models::Operation::Add => None,
         };
 
