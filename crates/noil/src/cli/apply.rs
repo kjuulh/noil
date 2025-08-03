@@ -34,6 +34,7 @@ impl ApplyCommand {
                         &original,
                         ApplyOptions {
                             chooser_file: self.chooser_file.clone(),
+                            ..Default::default()
                         },
                     )
                     .await
@@ -49,6 +50,7 @@ impl ApplyCommand {
                 &input,
                 ApplyOptions {
                     chooser_file: self.chooser_file.clone(),
+                    ..Default::default()
                 },
             )
             .await

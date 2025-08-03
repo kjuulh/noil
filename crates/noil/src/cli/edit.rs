@@ -1,13 +1,17 @@
 use std::{
     env::temp_dir,
-    io::Write,
+    io::{IsTerminal, Write},
     path::{Path, PathBuf},
+    process::Stdio,
 };
 
 use ansi_term::Color;
 use anyhow::{Context, bail};
 use clap::Parser;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::{
+    fs::OpenOptions,
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+};
 
 use crate::{
     commit::{Action, print_changes},
@@ -26,6 +30,12 @@ pub struct EditCommand {
 
     #[arg(long = "chooser-file", env = "NOIL_CHOOSER_FILE")]
     chooser_file: Option<PathBuf>,
+
+    #[arg(long = "commit")]
+    commit: bool,
+
+    #[arg(long = "quiet")]
+    quiet: bool,
 }
 
 impl EditCommand {
@@ -52,9 +62,13 @@ impl EditCommand {
             .await
             .context("create temp file for noil")?;
 
-        let output = get_outputs(&self.path, true).await?;
-        file.write_all(output.as_bytes()).await?;
-        file.flush().await?;
+        let output = get_outputs(&self.get_path().await.context("get path")?, true)
+            .await
+            .context("get output")?;
+        file.write_all(output.as_bytes())
+            .await
+            .context("write contents for edit")?;
+        file.flush().await.context("flush contents for edit")?;
 
         let editor = std::env::var("EDITOR").context("EDITOR not found in env")?;
 
@@ -62,7 +76,22 @@ impl EditCommand {
             let mut cmd = tokio::process::Command::new(editor.trim());
             cmd.arg(&file_path);
 
-            let mut process = cmd.spawn()?;
+            if !std::io::stdout().is_terminal() {
+                let tty = OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open("/dev/tty")
+                    .await
+                    .context("open tty")?;
+                let tty_in = tty.try_clone().await.context("clone ttyin")?;
+                let tty_out = tty.try_clone().await.context("clone ttyout")?;
+
+                cmd.stdin(Stdio::from(tty_in.into_std().await))
+                    .stdout(Stdio::from(tty_out.into_std().await))
+                    .stderr(Stdio::from(tty.into_std().await));
+            }
+
+            let mut process = cmd.spawn().context("command not found")?;
             let status = process.wait().await.context("editor closed prematurely")?;
             if !status.success() {
                 let code = status.code().unwrap_or(-1);
@@ -73,7 +102,13 @@ impl EditCommand {
                 .await
                 .context("read noil file")?;
 
-            let res = print_changes(&noil_content, PREVIEW).await;
+            let res = if !self.commit {
+                print_changes(&noil_content, PREVIEW).await
+            } else {
+                Ok(Action::Apply {
+                    original: noil_content,
+                })
+            };
 
             let action = match res {
                 Ok(a) => a,
@@ -83,7 +118,7 @@ impl EditCommand {
                         Color::Red.normal().paint(format!("{e:?}"))
                     );
 
-                    wait_user().await?;
+                    wait_user().await.context("user finished prematurely")?;
 
                     continue;
                 }
@@ -96,6 +131,7 @@ impl EditCommand {
                         &original,
                         ApplyOptions {
                             chooser_file: self.chooser_file.clone(),
+                            quiet: self.quiet,
                         },
                     )
                     .await;
@@ -103,6 +139,25 @@ impl EditCommand {
                 Action::Edit => continue,
             }
         }
+    }
+
+    async fn get_path(&self) -> anyhow::Result<PathBuf> {
+        let path_str = self.path.display().to_string();
+        let expanded_path = shellexpand::full(&path_str)?;
+        let path = PathBuf::from(expanded_path.to_string());
+
+        if !path.exists() {
+            anyhow::bail!("path: {} does not exist", self.path.display());
+        }
+
+        if path.is_file() {
+            return path
+                .parent()
+                .map(|p| p.to_path_buf())
+                .ok_or(anyhow::anyhow!("parent doesn't exist for file"));
+        }
+
+        Ok(path.clone())
     }
 }
 
@@ -112,13 +167,17 @@ async fn wait_user() -> Result<(), anyhow::Error> {
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin);
     let mut input_buf = String::new();
-    reader.read_line(&mut input_buf).await?;
+    reader
+        .read_line(&mut input_buf)
+        .await
+        .context("failed to read stdin")?;
     Ok(())
 }
 
 #[derive(Default, Clone, Debug)]
 pub struct ApplyOptions {
     pub chooser_file: Option<PathBuf>,
+    pub quiet: bool,
 }
 
 /// the philosphy behind apply is that we try unlike normal file system operations to be idempotent.
@@ -129,7 +188,9 @@ pub struct ApplyOptions {
 ///
 /// All in all apply is mostly idempotent, and won't override files, it tries to be as non destructive as possible. For example move will only throw a warning if the source file doesn't exists, but the destination does
 pub async fn apply(input: &str, options: ApplyOptions) -> anyhow::Result<()> {
-    eprintln!("applying changes");
+    if !options.quiet {
+        eprintln!("applying changes");
+    }
 
     let noil_index = parse::parse_input(input).context("parse input")?;
 
