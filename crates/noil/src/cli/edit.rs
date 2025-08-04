@@ -341,7 +341,7 @@ pub async fn apply(input: &str, options: ApplyOptions) -> anyhow::Result<()> {
             .map(|i| i.display().to_string())
             .collect::<Vec<_>>();
 
-        file.write_all(open_files.join("\n").as_bytes())
+        file.write_all(open_files.join(" ").as_bytes())
             .await
             .context("write chosen files")?;
         file.flush().await.context("flush chosen file")?;
