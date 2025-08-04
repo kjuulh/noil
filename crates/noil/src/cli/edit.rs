@@ -62,9 +62,10 @@ impl EditCommand {
             .await
             .context("create temp file for noil")?;
 
-        let output = get_outputs(&self.get_path().await.context("get path")?, true)
+        let path = &self.get_path().await.context("get path")?;
+        let output = get_outputs(path, true)
             .await
-            .context("get output")?;
+            .context(format!("get output: {}", path.display()))?;
         file.write_all(output.as_bytes())
             .await
             .context("write contents for edit")?;
@@ -151,10 +152,16 @@ impl EditCommand {
         }
 
         if path.is_file() {
-            return path
+            let parent_path = path
                 .parent()
                 .map(|p| p.to_path_buf())
-                .ok_or(anyhow::anyhow!("parent doesn't exist for file"));
+                .ok_or(anyhow::anyhow!("parent doesn't exist for file"))?;
+
+            if parent_path.display().to_string() == "" {
+                return Ok(PathBuf::from("."));
+            }
+
+            return Ok(parent_path);
         }
 
         Ok(path.clone())
