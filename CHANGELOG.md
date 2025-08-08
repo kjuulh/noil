@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-08-08
+
+### Added
+- default to current dir if no file could be found
+
+### Other
+- should be space instead
+
 ## [0.1.1] - 2025-08-04
 
 ### Fixed
