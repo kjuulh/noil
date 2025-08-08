@@ -40,10 +40,13 @@ pub struct EditCommand {
 
 impl EditCommand {
     pub async fn execute(&self) -> anyhow::Result<()> {
-        let mut small_id = Vec::with_capacity(8);
-        for id in small_id.iter_mut() {
-            *id = encode_rand::ALPHABET
-                [rand::random_range(0..(encode_rand::ALPHABET_LEN as u8)) as usize];
+        let mut small_id = Vec::new();
+
+        for _ in 0..8 {
+            small_id.push(
+                encode_rand::ALPHABET
+                    [rand::random_range(0..(encode_rand::ALPHABET_LEN as u8)) as usize],
+            );
         }
         let small_id = String::from_utf8_lossy(&small_id);
 
@@ -62,7 +65,17 @@ impl EditCommand {
             .await
             .context("create temp file for noil")?;
 
-        let path = &self.get_path().await.context("get path")?;
+        let path = &self
+            .get_path()
+            .await
+            .context("get path")
+            .inspect_err(|e| {
+                tracing::warn!(
+                    "error: file path doesn't exist, defaulting to current working dir: {e}"
+                )
+            })
+            .unwrap_or_else(|_| PathBuf::from("."));
+
         let output = get_outputs(path, true)
             .await
             .context(format!("get output: {}", path.display()))?;
