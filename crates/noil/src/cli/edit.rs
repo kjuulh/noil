@@ -328,6 +328,14 @@ pub async fn apply(input: &str, options: ApplyOptions) -> anyhow::Result<()> {
                     anyhow::bail!("destination already exists cannot move");
                 }
 
+                if let Some(parent) = existing.path.parent()
+                    && !parent.exists()
+                {
+                    tokio::fs::create_dir_all(&parent)
+                        .await
+                        .context("failed to create dest for move")?;
+                }
+
                 tokio::fs::rename(&existing.path, path)
                     .await
                     .context("move path")?;
