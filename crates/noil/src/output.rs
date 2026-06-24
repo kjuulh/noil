@@ -38,19 +38,18 @@ pub async fn get_outputs(path: &Path, no_color: bool) -> anyhow::Result<String> 
     for (prefix, individual_prefix, path) in paths {
         let path_str = path.display().to_string();
         let mut line = String::new();
+        let prefix_with_color = if no_color {
+            prefix
+        } else if let Some(suffix) = prefix.strip_prefix(individual_prefix) {
+            //&format!("*{individual_prefix}*{suffix}")
+            &format!("{individual_prefix}{suffix}")
+        } else {
+            prefix
+        };
         write!(
             &mut line,
             "   {}{}   :   {}{}",
-            {
-                if no_color {
-                    prefix
-                } else if let Some(suffix) = prefix.strip_prefix(individual_prefix) {
-                    //&format!("*{individual_prefix}*{suffix}")
-                    &format!("{individual_prefix}{suffix}")
-                } else {
-                    prefix
-                }
-            },
+            prefix_with_color,
             " ".repeat(shortest_len - prefix.len()),
             path_str,
             {
